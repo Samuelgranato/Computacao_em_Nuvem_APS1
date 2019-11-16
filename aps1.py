@@ -17,9 +17,6 @@ class Tarefas:
         return json.dumps(self.__dict__)
 
 
-
-
-
 def get_all_tarefas():
     return all_tarefas
 
@@ -107,7 +104,7 @@ if __name__ == '__main__':
     post_tarefa("gabriel")
     post_tarefa("matddeus")
 
-    app.run(debug=True)
+    app.run(host= '0.0.0.0')
 
 
 
