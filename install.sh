@@ -1,3 +1,3 @@
-sudo apt update && sudo apt upgrade -y
-sudo apt install python3-pip
-pip3 install flask
+sudo apt update --assume-yes && sudo apt upgrade --assume-yes -y
+sudo apt install --assume-yes python3-pip 
+yes | pip3 install flask
