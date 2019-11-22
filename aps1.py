@@ -1,13 +1,25 @@
 from flask import Flask, request,jsonify
 import json
+import pymongo
+from bson import ObjectId
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
+
+
+
 app = Flask(__name__)
-
-
-all_tarefas = {}
+myclient    = ''
+mydb        = ''
+mycol       = ''
 
 
 class Tarefas:
   def __init__(self, name,id):
+
     self.name = name
     self.done = False
     self.id = id
@@ -17,49 +29,56 @@ class Tarefas:
         return json.dumps(self.__dict__)
 
 
-def get_all_tarefas():
-    return all_tarefas
+def get_all_tarefas_json():
+    t = []
+    for x in mycol.find():
+        t.append(x)
+    print(t)
+    new_dict = {item['id']:item for item in t}
+    print(new_dict)
+    return JSONEncoder().encode(t)
+
+def get_all_tarefas_list():
+    t = []
+    for x in mycol.find():
+        t.append(x)
+    return t
 
 def post_tarefa(nome):
-    id = len(get_all_tarefas())
-    tarefa = Tarefas(nome,id)
+    id = len(get_all_tarefas_list())
 
-    all_tarefas[id] = tarefa.toJSON()
+
+    tarefa = {
+        'id'    : id,
+        'nome'  : nome,
+        'done'  : 'False',
+        'active': 'True'
+    }
+
+    mycol.insert_one(tarefa)
+
     return
 
 def delete_tarefa(id):
-    tarefa_dict = json.loads(all_tarefas[id])
 
-    nome = tarefa_dict['name']
-
-    tarefa = Tarefas(nome,id)
-    tarefa.done = tarefa_dict['done']
-
-    tarefa.active = False
-
-    del all_tarefas[id]
-
-    all_tarefas[id] = tarefa.toJSON()
+    myquery = { "id": id }
+    mycol.delete_many(myquery)
 
     return
 
 def get_tarefa(id):
-    return all_tarefas[id]
-
-def atualiza_tarefa(id, nome, done):
-    tarefa = Tarefas(nome,id)
-
-
-    if done == False or done == "True":
-        tarefa.done = bool(done)
-
-    print(type(id))
-    print(all_tarefas)
-    del all_tarefas[id]
-    all_tarefas[id] = tarefa.toJSON()
+    for x in mycol.find():
+        if(x['id'] == id):
+            return x
     return
 
+def atualiza_tarefa(id, nome, done):
 
+    myquery = { "id": id }
+    newvalues = { "$set": { "nome": nome, 'done' : done } }
+
+    mycol.update_one(myquery, newvalues)
+    return
 
 
 @app.route("/")
@@ -75,7 +94,7 @@ def tarefa():
         post_tarefa(nome)
         return 'ok'
     elif request.method == 'GET':
-        return get_all_tarefas() 
+        return get_all_tarefas_json() 
 
 @app.route('/Tarefa/<id>',methods=["GET","PUT","DELETE"])
 def tarefa_id(id):
@@ -100,15 +119,12 @@ def healthcheck():
     return ('', 200)
 
 if __name__ == '__main__':
-    post_tarefa("joao")
-    post_tarefa("gabriel")
-    post_tarefa("matddeus")
+    # client = pymongo.MongoClient("mongodb://18.220.67.82/tarefa") # defaults to port 27017
+    # db = client.tarefa
+
+    myclient = pymongo.MongoClient("mongodb://18.220.67.82:27017/projeto")
+    mydb = myclient["projeto"]
+    mycol = mydb["tarefa"]
 
     app.run(host= '0.0.0.0')
-
-
-
-
-
-
     
